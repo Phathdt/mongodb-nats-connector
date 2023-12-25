@@ -28,6 +28,7 @@ func main() {
 			connector.WithTokensDbName(coll.TokensDbName),
 			connector.WithTokensCollName(coll.TokensCollName),
 			connector.WithStreamName(coll.StreamName),
+			connector.WithStreamSkipInit(coll.StreamSkipInit),
 		}
 		if coll.ChangeStreamPreAndPostImages != nil && *coll.ChangeStreamPreAndPostImages {
 			collOpts = append(collOpts, connector.WithChangeStreamPreAndPostImages())

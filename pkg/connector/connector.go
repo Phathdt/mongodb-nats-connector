@@ -132,9 +132,11 @@ func (c *Connector) Run() error {
 			return err
 		}
 
-		addStreamOpts := &nats.AddStreamOptions{StreamName: coll.streamName}
-		if err := c.options.natsClient.AddStream(groupCtx, addStreamOpts); err != nil {
-			return err
+		if !coll.StreamSkipInit {
+			addStreamOpts := &nats.AddStreamOptions{StreamName: coll.streamName}
+			if err := c.options.natsClient.AddStream(groupCtx, addStreamOpts); err != nil {
+				return err
+			}
 		}
 
 		group.Go(func() error {
@@ -344,6 +346,7 @@ type collection struct {
 	tokensCollCapped             bool
 	tokensCollSizeInBytes        int64
 	streamName                   string
+	StreamSkipInit               bool
 }
 
 // CollectionOption is used to configure a MongoDB collection to be watched.
@@ -399,6 +402,15 @@ func WithStreamName(streamName string) CollectionOption {
 		if streamName != "" {
 			c.streamName = streamName
 		}
+		return nil
+	}
+}
+
+// WithStreamSkipInit skip init stream
+func WithStreamSkipInit(skipInit bool) CollectionOption {
+	return func(c *collection) error {
+		c.StreamSkipInit = skipInit
+
 		return nil
 	}
 }

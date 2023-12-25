@@ -59,4 +59,5 @@ type Collection struct {
 	TokensCollCapped             *bool  `yaml:"tokensCollCapped,omitempty"`
 	TokensCollSizeInBytes        *int64 `yaml:"tokensCollSizeInBytes,omitempty"`
 	StreamName                   string `yaml:"streamName,omitempty"`
+	StreamSkipInit               bool   `yaml:"streamSkipInit,omitempty"`
 }

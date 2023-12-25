@@ -174,7 +174,6 @@ func (c *DefaultClient) WatchCollection(ctx context.Context, opts *WatchCollecti
 		for cs.Next(ctx) {
 			currentResumeToken := cs.Current.Lookup("_id", "_data").StringValue()
 
-			//json, err := bson.Marshal(cs.Current)
 			json, err := bson.MarshalExtJSON(cs.Current, false, false)
 			if err != nil {
 				return fmt.Errorf("could not marshal mongo change event from bson: %v", err)

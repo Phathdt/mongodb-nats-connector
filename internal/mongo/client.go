@@ -173,7 +173,6 @@ func (c *DefaultClient) WatchCollection(ctx context.Context, opts *WatchCollecti
 
 		for cs.Next(ctx) {
 			currentResumeToken := cs.Current.Lookup("_id", "_data").StringValue()
-			operationType := cs.Current.Lookup("operationType").StringValue()
 
 			json, err := bson.MarshalExtJSON(cs.Current, false, false)
 			if err != nil {
@@ -181,7 +180,7 @@ func (c *DefaultClient) WatchCollection(ctx context.Context, opts *WatchCollecti
 			}
 			c.logger.Debug("received change event", "changeEvent", string(json))
 
-			subj := fmt.Sprintf("%s.%s", opts.StreamName, operationType)
+			subj := opts.StreamName
 			if err = opts.ChangeEventHandler(ctx, subj, currentResumeToken, json); err != nil {
 				// current change event was not published.
 				// current resume token will not be stored.

@@ -2,13 +2,18 @@ package nats
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"io"
 	"log/slog"
+	"time"
 
 	"github.com/nats-io/nats.go"
 
+	"github.com/ThreeDotsLabs/watermill-jetstream/pkg/jetstream"
 	"github.com/damianiandrea/mongodb-nats-connector/internal/server"
 )
 
@@ -45,8 +50,9 @@ type DefaultClient struct {
 	name   string
 	logger *slog.Logger
 
-	conn *nats.Conn
-	js   nats.JetStreamContext
+	conn      *nats.Conn
+	js        nats.JetStreamContext
+	publisher *jetstream.Publisher
 }
 
 func NewDefaultClient(opts ...ClientOption) (*DefaultClient, error) {
@@ -77,6 +83,23 @@ func NewDefaultClient(opts ...ClientOption) (*DefaultClient, error) {
 
 	js, _ := conn.JetStream()
 	c.js = js
+
+	options := []nats.Option{
+		nats.RetryOnFailedConnect(true),
+		nats.Timeout(30 * time.Second),
+		nats.ReconnectWait(1 * time.Second),
+	}
+
+	marshaler := &jetstream.GobMarshaler{}
+	logger := watermill.NewStdLogger(false, false)
+	c.publisher, err = jetstream.NewPublisher(
+		jetstream.PublisherConfig{
+			URL:         c.url,
+			NatsOptions: options,
+			Marshaler:   marshaler,
+		},
+		logger,
+	)
 
 	c.logger.Info("connected to nats", "url", conn.ConnectedUrlRedacted())
 	return c, nil
@@ -112,10 +135,18 @@ func (c *DefaultClient) AddStream(_ context.Context, opts *AddStreamOptions) err
 }
 
 func (c *DefaultClient) Publish(_ context.Context, opts *PublishOptions) error {
-	if _, err := c.js.Publish(opts.Subj, opts.Data, nats.MsgId(opts.MsgId)); err != nil {
-		return fmt.Errorf("could not publish message %v to nats stream %v: %v", opts.Data, opts.Subj, err)
+	payload, err := json.Marshal(opts.Data)
+	if err != nil {
+		return err
 	}
+
+	msg := message.NewMessage(watermill.NewUUID(), payload)
+	if err = c.publisher.Publish(opts.Subj, msg); err != nil {
+		return err
+	}
+
 	c.logger.Debug("published message", "subj", opts.Subj, "data", string(opts.Data))
+
 	return nil
 }
 

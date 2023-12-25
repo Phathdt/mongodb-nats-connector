@@ -140,6 +140,7 @@ func (c *DefaultClient) Publish(_ context.Context, opts *PublishOptions) error {
 		return err
 	}
 
+	fmt.Printf("payload = %+v\n", payload)
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	if err = c.publisher.Publish(opts.Subj, msg); err != nil {
 		return err

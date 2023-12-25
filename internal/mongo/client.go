@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -175,14 +174,15 @@ func (c *DefaultClient) WatchCollection(ctx context.Context, opts *WatchCollecti
 		for cs.Next(ctx) {
 			currentResumeToken := cs.Current.Lookup("_id", "_data").StringValue()
 
-			marshal, err := json.Marshal(cs.Current)
+			//json, err := bson.Marshal(cs.Current)
+			json, err := bson.MarshalExtJSON(cs.Current, false, false)
 			if err != nil {
 				return fmt.Errorf("could not marshal mongo change event from bson: %v", err)
 			}
-			c.logger.Debug("received change event", "changeEvent", string(marshal))
+			c.logger.Debug("received change event", "changeEvent", string(json))
 
 			subj := opts.StreamName
-			if err = opts.ChangeEventHandler(ctx, subj, currentResumeToken, marshal); err != nil {
+			if err = opts.ChangeEventHandler(ctx, subj, currentResumeToken, json); err != nil {
 				// current change event was not published.
 				// current resume token will not be stored.
 				// connector will resume after the previous token.
